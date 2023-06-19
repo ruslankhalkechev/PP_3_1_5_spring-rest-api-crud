@@ -6,10 +6,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.khalkechev.springsecuritycrud.dao.RoleDAO;
 import ru.khalkechev.springsecuritycrud.dao.UserDAO;
+import ru.khalkechev.springsecuritycrud.exceptions.UserNotFoundException;
 import ru.khalkechev.springsecuritycrud.model.Role;
 import ru.khalkechev.springsecuritycrud.model.User;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 @Service
@@ -56,8 +58,9 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public User getUserById(long id) {
-        return userDAO.getUserById(id);
+    public User getUserById(long id) throws UserNotFoundException {
+        Optional<User> user = Optional.ofNullable(userDAO.getUserById(id));
+        return user.orElseThrow(() -> new UserNotFoundException("Пользователь c id=" + id + " - не найден"));
     }
 
     @Override
@@ -68,5 +71,11 @@ public class UserServiceImpl implements UserService {
     @Override
     public Set<Role> getSetOfRoles() {
         return roleDAO.getSetOfRoles();
+    }
+
+    @Override
+    public User findByUserName(String username) {
+        Optional<User> user = Optional.ofNullable(userDAO.findByUserName(username));
+        return user.orElse(null);
     }
 }

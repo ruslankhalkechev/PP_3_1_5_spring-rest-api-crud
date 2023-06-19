@@ -3,11 +3,9 @@ package ru.khalkechev.springsecuritycrud.dao;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Repository;
-import ru.khalkechev.springsecuritycrud.exceptions.UserNotFoundException;
 import ru.khalkechev.springsecuritycrud.model.User;
 
 import java.util.List;
-import java.util.Optional;
 
 @Repository
 public class UserDAOImpl implements UserDAO {
@@ -40,8 +38,7 @@ public class UserDAOImpl implements UserDAO {
 
     @Override
     public User getUserById(long id) {
-        Optional<User> user = Optional.ofNullable(entityManager.find(User.class, id));
-        return user.orElseThrow(() -> new UserNotFoundException("Пользователь с таким Id не найден"));
+        return entityManager.find(User.class, id);
     }
 
     @Override

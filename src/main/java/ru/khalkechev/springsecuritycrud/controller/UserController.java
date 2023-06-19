@@ -7,14 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.validation.Errors;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import ru.khalkechev.springsecuritycrud.dto.UserDTO;
 import ru.khalkechev.springsecuritycrud.exceptions.UserNotCreatedOrUpdatedException;
 import ru.khalkechev.springsecuritycrud.exceptions.UserNotFoundException;
@@ -62,7 +55,7 @@ public class UserController {
         User user = convertToUser(userDTO);
         userValidator.validate(user, errors);
         if (errors.hasErrors()) {
-            throw new UserNotCreatedOrUpdatedException("Ошибка при создании пользователя", errors);
+            throw new UserNotCreatedOrUpdatedException("Ошибка в данных при создании пользователя", errors);
         }
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         userService.save(user);
@@ -80,7 +73,7 @@ public class UserController {
         }
 
         if (errors.hasErrors()) {
-            throw new UserNotCreatedOrUpdatedException("Ошибка при обновлении пользователя", errors);
+            throw new UserNotCreatedOrUpdatedException("Ошибка в данных при обновлении пользователя", errors);
         }
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         userService.updateById(user, id);
@@ -96,9 +89,9 @@ public class UserController {
 
     @GetMapping("/user")
     public ResponseEntity<UserDTO> getUserInfo(Principal principal) {
-        User user = customUserDetailsService.findByUserName(principal.getName());
+        User user = userService.findByUserName(principal.getName());
         if (user == null) {
-            throw new UserNotFoundException("Ошибка авторизации. Пользователь не найден");
+            throw new UserNotFoundException("Пользователь - " + principal.getName() + " - не найден");
         }
         return ResponseEntity.status(HttpStatus.OK)
                 .body(convertToPersonDTO(user));

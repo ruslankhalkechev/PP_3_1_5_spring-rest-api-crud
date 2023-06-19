@@ -19,4 +19,6 @@ public interface UserService {
 
     Set<Role> getSetOfRoles();
 
+    User findByUserName(String username);
+
 }
