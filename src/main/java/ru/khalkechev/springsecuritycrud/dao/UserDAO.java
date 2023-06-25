@@ -3,19 +3,18 @@ package ru.khalkechev.springsecuritycrud.dao;
 import ru.khalkechev.springsecuritycrud.model.User;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface UserDAO {
     User save(User user);
 
     void delete(User user);
 
-    void deleteUserById(long id);
-
     User update(User user);
 
-    User getUserById(long id);
+    Optional<User> getUserById(long id);
 
     List<User> getListOfUsers();
 
-    User findByUserName(String username);
+    Optional<User> findByUserName(String username);
 }

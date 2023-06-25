@@ -11,16 +11,16 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
-import ru.khalkechev.springsecuritycrud.service.CustomUserDetailsService;
+import ru.khalkechev.springsecuritycrud.service.UserService;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfiguration {
-    private final CustomUserDetailsService customUserDetailsService;
+    private final UserService userService;
 
     @Autowired
-    public SecurityConfiguration(CustomUserDetailsService customUserDetailsService) {
-        this.customUserDetailsService = customUserDetailsService;
+    public SecurityConfiguration(UserService userService) {
+        this.userService = userService;
     }
 
     @Bean
@@ -32,7 +32,7 @@ public class SecurityConfiguration {
     public DaoAuthenticationProvider daoAuthenticationProvider() {
         DaoAuthenticationProvider authenticationProvider = new DaoAuthenticationProvider();
         authenticationProvider.setPasswordEncoder(passwordEncoder());
-        authenticationProvider.setUserDetailsService(customUserDetailsService);
+        authenticationProvider.setUserDetailsService(userService);
         return authenticationProvider;
     }
 
@@ -45,13 +45,14 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.PATCH, "/admin/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/admin/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/user").authenticated()
-                        .requestMatchers("/**").permitAll()
+                        .requestMatchers("/**").authenticated()
+
                 )
                 .formLogin((form) -> form
                         .loginPage("/login")
                         .permitAll()
                         .loginProcessingUrl("/login")
-                        .defaultSuccessUrl("/index.html")
+                        .defaultSuccessUrl("/", true)
                 )
                 .logout((logout) -> logout
                         .permitAll()

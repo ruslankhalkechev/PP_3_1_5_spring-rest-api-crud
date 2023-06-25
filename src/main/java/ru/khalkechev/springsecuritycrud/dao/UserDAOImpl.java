@@ -6,6 +6,7 @@ import org.springframework.stereotype.Repository;
 import ru.khalkechev.springsecuritycrud.model.User;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public class UserDAOImpl implements UserDAO {
@@ -25,20 +26,14 @@ public class UserDAOImpl implements UserDAO {
     }
 
     @Override
-    public void deleteUserById(long id) {
-        User user = entityManager.find(User.class, id);
-        entityManager.remove(user);
-    }
-
-    @Override
     public User update(User user) {
         entityManager.merge(user);
         return user;
     }
 
     @Override
-    public User getUserById(long id) {
-        return entityManager.find(User.class, id);
+    public Optional<User> getUserById(long id) {
+        return Optional.ofNullable(entityManager.find(User.class, id));
     }
 
     @Override
@@ -47,9 +42,12 @@ public class UserDAOImpl implements UserDAO {
     }
 
     @Override
-    public User findByUserName(String username) {
-        return (User) entityManager.createQuery("SELECT u FROM User u JOIN FETCH u.roles WHERE u.name = :parameterNameOfUser")
-                .setParameter("parameterNameOfUser", username).getResultList()
-                .stream().findFirst().orElse(null);
+    public Optional<User> findByUserName(String username) {
+        return entityManager
+                .createQuery("SELECT u FROM User u JOIN FETCH u.roles WHERE u.name = :parameterNameOfUser")
+                .setParameter("parameterNameOfUser", username)
+                .getResultList()
+                .stream()
+                .findFirst();
     }
 }

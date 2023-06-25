@@ -31,7 +31,7 @@ public class UserDTO {
     private byte age;
 
     @NotEmpty(message = "Должна быть выбрана хотя бы одна роль")
-    List<String> roles = new ArrayList<>();
+    private List<String> roles = new ArrayList<>();
 
     public Long getId() {
         return id;

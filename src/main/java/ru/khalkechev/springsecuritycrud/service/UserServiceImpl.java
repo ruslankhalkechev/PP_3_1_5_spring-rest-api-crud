@@ -2,8 +2,12 @@ package ru.khalkechev.springsecuritycrud.service;
 
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.Errors;
 import ru.khalkechev.springsecuritycrud.dao.RoleDAO;
 import ru.khalkechev.springsecuritycrud.dao.UserDAO;
 import ru.khalkechev.springsecuritycrud.exceptions.UserNotFoundException;
@@ -15,7 +19,7 @@ import java.util.Optional;
 import java.util.Set;
 
 @Service
-public class UserServiceImpl implements UserService {
+public class UserServiceImpl implements UserService, UserDetailsService {
 
     private final UserDAO userDAO;
     private final RoleDAO roleDAO;
@@ -37,7 +41,7 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public void deleteUserById(long id) {
-        User user = userDAO.getUserById(id);
+        User user = getUserById(id);
         userDAO.delete(user);
     }
 
@@ -59,8 +63,8 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User getUserById(long id) throws UserNotFoundException {
-        Optional<User> user = Optional.ofNullable(userDAO.getUserById(id));
-        return user.orElseThrow(() -> new UserNotFoundException("Пользователь c id=" + id + " - не найден"));
+        return userDAO.getUserById(id)
+                .orElseThrow(() -> new UserNotFoundException("Пользователь c id=" + id + " - не найден"));
     }
 
     @Override
@@ -74,8 +78,26 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public User findByUserName(String username) {
-        Optional<User> user = Optional.ofNullable(userDAO.findByUserName(username));
-        return user.orElse(null);
+    public Optional<User> findByUserName(String username) {
+        return userDAO.findByUserName(username);
     }
+
+    @Override
+    public void validate(User user, Errors errors) {
+        if (findByUserName(user.getName()).isPresent()) {
+            errors.rejectValue("name", "", "Такой логин уже существует");
+        }
+    }
+
+    @Override
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        Optional<User> user = findByUserName(username);
+        return user.orElseThrow(() -> new UsernameNotFoundException("Пользователь -" + username + "- не найден"));
+    }
+
+    @Override
+    public Role convert(String name) {
+        return roleDAO.getRoleByName(name);
+    }
+
 }

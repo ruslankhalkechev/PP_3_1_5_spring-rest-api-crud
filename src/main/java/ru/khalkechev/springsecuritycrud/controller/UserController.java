@@ -7,45 +7,47 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.validation.Errors;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import ru.khalkechev.springsecuritycrud.dto.UserDTO;
 import ru.khalkechev.springsecuritycrud.exceptions.UserNotCreatedOrUpdatedException;
 import ru.khalkechev.springsecuritycrud.exceptions.UserNotFoundException;
 import ru.khalkechev.springsecuritycrud.model.User;
-import ru.khalkechev.springsecuritycrud.service.CustomUserDetailsService;
 import ru.khalkechev.springsecuritycrud.service.UserService;
-import ru.khalkechev.springsecuritycrud.util.RoleByNameConverter;
-import ru.khalkechev.springsecuritycrud.util.UserValidator;
 
 import java.security.Principal;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/")
 public class UserController {
     private final UserService userService;
-    private final CustomUserDetailsService customUserDetailsService;
     private final PasswordEncoder passwordEncoder;
-    private final UserValidator userValidator;
     private final ModelMapper modelMapper;
 
-    private final RoleByNameConverter roleByNameConverter;
 
     @Autowired
-    public UserController(UserService userService, CustomUserDetailsService customUserDetailsService,
-                          PasswordEncoder passwordEncoder, UserValidator userValidator, ModelMapper modelMapper, RoleByNameConverter roleByNameConverter) {
+    public UserController(UserService userService, PasswordEncoder passwordEncoder,
+                          ModelMapper modelMapper) {
         this.userService = userService;
-        this.customUserDetailsService = customUserDetailsService;
         this.passwordEncoder = passwordEncoder;
-        this.userValidator = userValidator;
         this.modelMapper = modelMapper;
-        this.roleByNameConverter = roleByNameConverter;
     }
 
     @GetMapping("/admin")
     public ResponseEntity<List<UserDTO>> showList() {
-        List<UserDTO> usersDTO = userService.getListOfUsers().stream().map(this::convertToPersonDTO).collect(Collectors.toList());
+        List<UserDTO> usersDTO = userService.getListOfUsers()
+                .stream()
+                .map(this::convertToUserDTO)
+                .collect(Collectors.toList());
         return ResponseEntity.status(HttpStatus.OK)
                 .body(usersDTO);
     }
@@ -53,7 +55,7 @@ public class UserController {
     @PostMapping("/admin")
     public ResponseEntity<UserDTO> create(@RequestBody @Valid UserDTO userDTO, Errors errors) {
         User user = convertToUser(userDTO);
-        userValidator.validate(user, errors);
+        userService.validate(user, errors);
         if (errors.hasErrors()) {
             throw new UserNotCreatedOrUpdatedException("Ошибка в данных при создании пользователя", errors);
         }
@@ -69,7 +71,7 @@ public class UserController {
         User user = convertToUser(userDTO);
         User updatedUser = userService.getUserById(id);
         if (!updatedUser.getName().equals(user.getName())) {
-            userValidator.validate(user, errors);
+            userService.validate(user, errors);
         }
 
         if (errors.hasErrors()) {
@@ -89,25 +91,31 @@ public class UserController {
 
     @GetMapping("/user")
     public ResponseEntity<UserDTO> getUserInfo(Principal principal) {
-        User user = userService.findByUserName(principal.getName());
-        if (user == null) {
+        Optional<User> optionalUser = userService.findByUserName(principal.getName());
+        if (optionalUser.isEmpty()) {
             throw new UserNotFoundException("Пользователь - " + principal.getName() + " - не найден");
         }
         return ResponseEntity.status(HttpStatus.OK)
-                .body(convertToPersonDTO(user));
+                .body(convertToUserDTO(optionalUser.get()));
     }
 
 
     private User convertToUser(UserDTO userDTO) {
         User user = modelMapper.map(userDTO, User.class);
-        user.setRoles(userDTO.getRoles().stream().map(roleByNameConverter::convert).collect(Collectors.toSet()));
+        user.setRoles(userDTO.getRoles()
+                .stream()
+                .map(userService::convert)
+                .collect(Collectors.toSet()));
         return user;
     }
 
-    private UserDTO convertToPersonDTO(User user) {
+    private UserDTO convertToUserDTO(User user) {
         UserDTO userDTO = modelMapper.map(user, UserDTO.class);
         userDTO.setPassword("");
-        userDTO.setRoles(userDTO.getRoles().stream().map(n -> n.contains("ADMIN") ? "ADMIN" : "USER").collect(Collectors.toList()));
+        userDTO.setRoles(userDTO.getRoles()
+                .stream()
+                .map(n -> n.contains("ADMIN") ? "ADMIN" : "USER")
+                .collect(Collectors.toList()));
         return userDTO;
     }
 
